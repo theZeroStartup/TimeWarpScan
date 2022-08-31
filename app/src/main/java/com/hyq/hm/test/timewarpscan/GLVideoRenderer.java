@@ -3,15 +3,14 @@ package com.hyq.hm.test.timewarpscan;
 import android.graphics.SurfaceTexture;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
+import android.os.Build;
 import android.view.Surface;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
-/**
- * Created by 海米 on 2017/8/16.
- */
+import pub.devrel.easypermissions.EasyPermissions;
 
 public class GLVideoRenderer {
     private int programId = -1;

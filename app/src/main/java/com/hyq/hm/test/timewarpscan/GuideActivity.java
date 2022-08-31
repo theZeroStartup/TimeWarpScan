@@ -18,11 +18,6 @@ import androidx.core.content.PermissionChecker;
 
 import java.util.ArrayList;
 
-
-/**
- * Created by 海米 on 2018/6/7.
- */
-
 public class GuideActivity extends AppCompatActivity {
     private String[] denied;
     private String[] permissions = {Manifest.permission.CAMERA};
@@ -79,7 +74,7 @@ public class GuideActivity extends AppCompatActivity {
                 }
             }
             if (isDenied) {
-                Toast.makeText(this, "请开启权限", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Enable required permissions to continue", Toast.LENGTH_SHORT).show();
             } else {
                 init();
 
@@ -89,7 +84,7 @@ public class GuideActivity extends AppCompatActivity {
     }
     private void init(){
         TextView textView = findViewById(R.id.text_view);
-        textView.setText("测试");
+        textView.setText("Welcome");
         textView.postDelayed(new Runnable() {
             @Override
             public void run() {

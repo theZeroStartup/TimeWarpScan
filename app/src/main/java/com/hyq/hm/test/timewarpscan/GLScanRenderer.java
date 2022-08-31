@@ -1,14 +1,14 @@
 package com.hyq.hm.test.timewarpscan;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.opengl.GLES20;
+import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
-
-/**
- * Created by 海米 on 2017/8/16.
- */
+import java.util.Objects;
 
 public class GLScanRenderer {
     private int programId = -1;
@@ -24,33 +24,6 @@ public class GLScanRenderer {
 
 
     public void initShader() {
-        String fragmentShader = "varying highp vec2 vTexCoord;\n" +
-                "uniform sampler2D sTexture;\n" +
-                "uniform sampler2D uTexture;\n" +
-                "uniform highp float scanHeight;\n" +
-                "void main() {\n" +
-                "   highp float fy = 1.0 - vTexCoord.y;\n"+
-                "   if(fy > scanHeight){" +
-                "       highp vec4 rgba = texture2D(sTexture , vTexCoord);\n" +
-                "       gl_FragColor = rgba;\n" +
-                "   }else{" +
-                "       highp vec4 rgba = texture2D(uTexture , vTexCoord);\n" +
-                "       gl_FragColor = rgba;\n" +
-                "   }\n"+
-                "}";
-        String vertexShader = "attribute vec4 aPosition;\n" +
-                "attribute vec2 aTexCoord;\n" +
-                "varying vec2 vTexCoord;\n" +
-                "void main() {\n" +
-                "  vTexCoord = aTexCoord;\n" +
-                "  gl_Position = aPosition;\n" +
-                "}";
-        programId = ShaderUtils.createProgram(vertexShader, fragmentShader);
-        aPositionHandle = GLES20.glGetAttribLocation(programId, "aPosition");
-        sTextureSamplerHandle = GLES20.glGetUniformLocation(programId, "sTexture");
-        uTextureSamplerHandle = GLES20.glGetUniformLocation(programId, "uTexture");
-        aTextureCoordHandle = GLES20.glGetAttribLocation(programId, "aTexCoord");
-        scanHeightHandle = GLES20.glGetUniformLocation(programId, "scanHeight");
 
         float[] vertexData = {
                 1f, -1f, 0f,
@@ -58,7 +31,6 @@ public class GLScanRenderer {
                 1f, 1f, 0f,
                 -1f, 1f, 0f
         };
-
 
         float[] textureVertexData = {
                 1f, 0f,
@@ -86,8 +58,8 @@ public class GLScanRenderer {
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
 
         GLES20.glGenTextures(textures.length, textures, 0);
-        for (int i = 0; i < textures.length; i++) {
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[i]);
+        for (int texture : textures) {
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture);
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
@@ -98,6 +70,11 @@ public class GLScanRenderer {
 
         GLES20.glGenFramebuffers(frameBuffers.length, frameBuffers,0);
 
+    }
+
+    private String getWarpMode(Context context) {
+        SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
+        return sharedPref.getString("warpMode", "horizontal");
     }
 
     private int width,height;
@@ -118,14 +95,14 @@ public class GLScanRenderer {
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
     }
     private int textureIndex = 0;
-    public void drawFrame(int texture,float scanHeight) {
+    public void drawFrame(int texture, float scanHeight, Context context, boolean isNewScan) {
         int index = textureIndex;
         textureIndex = (index+1)%2;
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, frameBuffers[textureIndex]);
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
         GLES20.glViewport(0,0,width,height);
-        GLES20.glUseProgram(programId);
+        GLES20.glUseProgram(getProgramId(context, isNewScan));
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,texture);
         GLES20.glUniform1i(sTextureSamplerHandle,0);
@@ -133,7 +110,6 @@ public class GLScanRenderer {
         GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,textures[index]);
         GLES20.glUniform1i(uTextureSamplerHandle,1);
-
 
         GLES20.glUniform1f(scanHeightHandle,scanHeight);
 
@@ -150,6 +126,60 @@ public class GLScanRenderer {
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+    }
+
+    private int getProgramId(Context context, boolean isNewScan) {
+        if (programId == -1 || isNewScan) {
+            String fragmentShader;
+
+            if (Objects.equals(getWarpMode(context), "horizontal")) {
+                fragmentShader = "varying highp vec2 vTexCoord;\n" +
+                        "uniform sampler2D sTexture;\n" +
+                        "uniform sampler2D uTexture;\n" +
+                        "uniform highp float scanHeight;\n" +
+                        "void main() {\n" +
+                        "   highp float fy = vTexCoord.x;\n" +
+                        "   if(fy > scanHeight){" +
+                        "       highp vec4 rgba = texture2D(sTexture , vTexCoord);\n" +
+                        "       gl_FragColor = rgba;\n" +
+                        "   }else{" +
+                        "       highp vec4 rgba = texture2D(uTexture , vTexCoord);\n" +
+                        "       gl_FragColor = rgba;\n" +
+                        "   }\n" +
+                        "}";
+            } else {
+                fragmentShader = "varying highp vec2 vTexCoord;\n" +
+                        "uniform sampler2D sTexture;\n" +
+                        "uniform sampler2D uTexture;\n" +
+                        "uniform highp float scanHeight;\n" +
+                        "void main() {\n" +
+                        "   highp float fy = 1.0 - vTexCoord.y;\n" +
+                        "   if(fy > scanHeight){" +
+                        "       highp vec4 rgba = texture2D(sTexture , vTexCoord);\n" +
+                        "       gl_FragColor = rgba;\n" +
+                        "   }else{" +
+                        "       highp vec4 rgba = texture2D(uTexture , vTexCoord);\n" +
+                        "       gl_FragColor = rgba;\n" +
+                        "   }\n" +
+                        "}";
+            }
+
+            String vertexShader = "attribute vec4 aPosition;\n" +
+                    "attribute vec2 aTexCoord;\n" +
+                    "varying vec2 vTexCoord;\n" +
+                    "void main() {\n" +
+                    "  vTexCoord = aTexCoord;\n" +
+                    "  gl_Position = aPosition;\n" +
+                    "}";
+            programId = ShaderUtils.createProgram(vertexShader, fragmentShader);
+            aPositionHandle = GLES20.glGetAttribLocation(programId, "aPosition");
+            sTextureSamplerHandle = GLES20.glGetUniformLocation(programId, "sTexture");
+            uTextureSamplerHandle = GLES20.glGetUniformLocation(programId, "uTexture");
+            aTextureCoordHandle = GLES20.glGetAttribLocation(programId, "aTexCoord");
+            scanHeightHandle = GLES20.glGetUniformLocation(programId, "scanHeight");
+        }
+
+        return programId;
     }
 
     public int getTexture() {

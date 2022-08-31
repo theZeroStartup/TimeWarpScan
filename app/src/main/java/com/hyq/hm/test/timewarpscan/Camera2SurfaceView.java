@@ -3,6 +3,7 @@ package com.hyq.hm.test.timewarpscan;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -17,6 +18,7 @@ import android.opengl.GLES20;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.Size;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -25,6 +27,7 @@ import androidx.annotation.NonNull;
 import androidx.core.content.PermissionChecker;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -49,10 +52,13 @@ public class Camera2SurfaceView extends SurfaceView {
     private HandlerThread cameraThread;
 
     private boolean isScan = false;
+    private boolean isNewScan = false;
     private boolean isf = false;
     private float scanHeight;
     private float pixelHeight;
-    private final int speed = 2;
+    private float speed = 8;
+    private int activeCamera = 0;
+    long startTime = 0;
 
     public boolean isScanVideo() {
         return isScan;
@@ -60,22 +66,79 @@ public class Camera2SurfaceView extends SurfaceView {
 
     public void setScanVideo(boolean scan) {
         isScan = scan;
+        isNewScan = scan;
+    }
+
+    public void setSpeed(float speed){
+        this.speed = speed;
+    }
+
+    public float getSpeed() {
+        return speed;
+    }
+
+    public Rect getRectangle() {
+        return rect;
+    }
+
+    public int getAnimationWidth(){
+        int w = rect.right - rect.left;
+        return w * 10;
+    }
+
+    public float getScreenWidth() {
+        return previewWidth;
+    }
+
+    public float getScreenHeight() {
+        return previewHeight;
+    }
+
+    public boolean isShowFrontCamera(Context context) {
+        return getActiveCamera(context) == 0;
+    }
+
+    private int getActiveCamera(Context context) {
+        SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
+        return sharedPref.getInt("camera", 0);
+    }
+
+    public void setWarpMode(Context context, String mode) {
+        SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putString("warpMode", mode);
+        editor.apply();
+
+        isScan = false;
+    }
+
+    public int getScreenWidth(Context context) {
+        SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
+        return sharedPref.getInt("width", 0);
+    }
+
+    public void setScreenWidth(Context context, int width) {
+        SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt("width", width);
+        editor.apply();
     }
 
     public Camera2SurfaceView(Context context) {
         super(context);
-        init();
+        init(context);
     }
 
     public Camera2SurfaceView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
+        init(context);
     }
 
-    private void init(){
+    private void init(final Context context){
         cameraThread = new HandlerThread("Camera2Thread");
         cameraThread.start();
         cameraHandler = new Handler(cameraThread.getLooper());
+        activeCamera = getActiveCamera(context);
 
         initCamera2();
         getHolder().addCallback(new SurfaceHolder.Callback() {
@@ -103,17 +166,24 @@ public class Camera2SurfaceView extends SurfaceView {
                                         int videoTexture = videoRenderer.getTexture();
                                         if(isScan){
                                             if(!isf){
+                                                startTime = System.currentTimeMillis();
                                                 scanHeight = pixelHeight*speed;
                                             }else{
+                                                isNewScan = false;
                                                 scanHeight += (pixelHeight*speed);
                                             }
                                             if(scanHeight < 2.0){
                                                 float fh = scanHeight;
-                                                if(scanHeight >= 1.0 ){
+                                                if(scanHeight >= 1.0){
                                                     scanHeight = 3.0f;
                                                     fh = 1.0f;
                                                 }
-                                                scanRenderer.drawFrame(videoRenderer.getTexture(),fh);
+                                                scanRenderer.drawFrame(videoRenderer.getTexture(),fh, context, isNewScan);
+                                            }
+                                            else if (scanHeight < 4.0f){
+                                                scanHeight = 5.0f;
+                                                Log.d("TAG", "run: " + (System.currentTimeMillis() - startTime));
+                                                Log.d("TAG", "run: scan done");
                                             }
                                             videoTexture = scanRenderer.getTexture();
                                         }
@@ -143,8 +213,10 @@ public class Camera2SurfaceView extends SurfaceView {
                     @Override
                     public void run() {
                         Size mPreviewSize =  getPreferredPreviewSize(mSizes, screenWidth, screenHeight);
+                        Log.d("TAG", "run: " + mPreviewSize);
                         previewWidth = mPreviewSize.getHeight();
                         previewHeight = mPreviewSize.getWidth();
+                        if (getScreenWidth(context) == 0) setScreenWidth(context, previewWidth);
                         pixelHeight = 1.0f/previewHeight;
                         int left, top, viewWidth, viewHeight;
                         float sh = screenWidth * 1.0f / screenHeight;
@@ -178,20 +250,24 @@ public class Camera2SurfaceView extends SurfaceView {
                 cameraHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        if(mCameraCaptureSession != null){
-                            mCameraCaptureSession.getDevice().close();
-                            mCameraCaptureSession.close();
-                            mCameraCaptureSession = null;
-                        }
-                        GLES20.glDisable(GLES20.GL_BLEND);
-                        videoRenderer.release();
-                        mRenderer.release();
-                        scanRenderer.release();
-                        mEglUtils.release();
+                        destroyAll();
                     }
                 });
             }
         });
+    }
+
+    public void destroyAll() {
+        if(mCameraCaptureSession != null){
+            mCameraCaptureSession.getDevice().close();
+            mCameraCaptureSession.close();
+            mCameraCaptureSession = null;
+        }
+        GLES20.glDisable(GLES20.GL_BLEND);
+        videoRenderer.release();
+        mRenderer.release();
+        scanRenderer.release();
+        mEglUtils.release();
     }
 
     private Size[] mSizes;
@@ -200,10 +276,11 @@ public class Camera2SurfaceView extends SurfaceView {
         handlerThread.start();
         mHandler = new Handler(handlerThread.getLooper());
         mCameraManager = (CameraManager) getContext().getSystemService(Context.CAMERA_SERVICE);
+
         try {
             assert mCameraManager != null;
             String[] CameraIdList = mCameraManager.getCameraIdList();
-            mCameraId = CameraIdList[0];
+            mCameraId = CameraIdList[activeCamera];
             CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(mCameraId);
             characteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
@@ -287,11 +364,12 @@ public class Camera2SurfaceView extends SurfaceView {
                 }
             }
         }
-        if (collectorSizes.size() > 0) {
+        Log.d("TAG", "getPreferredPreviewSize: " + collectorSizes);
+        if (!collectorSizes.isEmpty()) {
             return Collections.min(collectorSizes, new Comparator<Size>() {
                 @Override
                 public int compare(Size s1, Size s2) {
-                    return Long.signum(s1.getWidth() * s1.getHeight() - s2.getWidth() * s2.getHeight());
+                    return Long.signum((long) s1.getWidth() * s1.getHeight() - (long) s2.getWidth() * s2.getHeight());
                 }
             });
         }

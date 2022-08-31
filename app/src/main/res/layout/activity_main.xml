@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/root"
     tools:context="com.hyq.hm.test.timewarpscan.MainActivity">
 
     <RelativeLayout
@@ -12,13 +12,123 @@
         <com.hyq.hm.test.timewarpscan.Camera2SurfaceView
             android:id="@+id/camera_view"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-        <Button
+            android:layout_height="match_parent"/>
+
+        <View
+            android:id="@+id/verticalLineSeparator"
+            android:layout_width="5dp"
+            android:visibility="gone"
+            android:layout_alignStart="@id/camera_view"
+            android:background="@color/white"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/app_name" />
+
+        <View
+            android:id="@+id/horizontalLineSeparator"
+            android:layout_width="match_parent"
+            android:visibility="gone"
+            android:layout_alignTop="@id/camera_view"
+            android:background="@color/white"
+            android:layout_height="5dp"
+            android:contentDescription="@string/app_name" />
+
+
+        <ImageView
+            android:id="@+id/camera_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:contentDescription="@string/app_name" />
+
+        <RelativeLayout
+            android:id="@+id/rlActions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="onScan"
-            android:text="定格"
-            />
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true">
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/btnWarpHorizontal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentStart="true"
+                android:src="@drawable/ic_baseline_chevron_right_24"
+                android:text="Switch Camera" />
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/btnWarpVertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/btnWarpHorizontal"
+                android:src="@drawable/ic_baseline_keyboard_arrow_down_24"
+                android:text="Switch Camera" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/btnSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_baseline_cameraswitch_24"
+                android:layout_below="@id/btnWarpHorizontal"
+                android:text="Switch Camera" />
+        </RelativeLayout>
+
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:id="@+id/rlSpeedControlActions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true">
+        <Button
+            android:id="@+id/btnSlow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=".5x"/>
+        <Button
+            android:id="@+id/btnNormal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/colorPrimary"
+            android:text="1x"/>
+        <Button
+            android:id="@+id/btnFast"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2x"/>
+    </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <RelativeLayout
+            android:id="@+id/rlMoreActions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true">
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/btnReset"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_baseline_refresh_24"
+                android:layout_alignParentEnd="true"
+                android:layout_above="@id/btnSaveToGallery"
+                android:visibility="gone"
+                android:layout_marginHorizontal="5dp"
+                android:text="Switch Camera" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/btnSaveToGallery"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentBottom="true"
+                android:layout_marginStart="5dp"
+                android:layout_marginTop="5dp"
+                android:layout_marginEnd="5dp"
+                android:layout_marginBottom="5dp"
+                android:src="@drawable/ic_baseline_download_24"
+                android:text="Switch Camera" />
+        </RelativeLayout>
+
     </RelativeLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
