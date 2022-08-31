@@ -231,10 +231,10 @@ public class MainActivity extends AppCompatActivity implements Listener {
                 animationDuration = getFrontAnimationDuration();
 
             if (speedMode == MODE_SLOW){
-                animationDuration *= 4;
+                animationDuration *= (SPEED_FAST / SPEED_SLOW);
             }
             else if (speedMode == MODE_NORMAL){
-                animationDuration *= 2;
+                animationDuration *= (SPEED_FAST / SPEED_NORMAL);
             }
 
             Log.d("TAG", "animateLineSeparator: " + binding.cameraView.getRectangle());
