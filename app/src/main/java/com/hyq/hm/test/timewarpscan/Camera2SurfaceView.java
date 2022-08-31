@@ -56,9 +56,15 @@ public class Camera2SurfaceView extends SurfaceView {
     private boolean isf = false;
     private float scanHeight;
     private float pixelHeight;
-    private float speed = 8;
+    private int speed = 8;
     private int activeCamera = 0;
     long startTime = 0;
+
+    private Listener listener;
+
+    public void setListener(Listener listener) {
+        this.listener = listener;
+    }
 
     public boolean isScanVideo() {
         return isScan;
@@ -69,7 +75,7 @@ public class Camera2SurfaceView extends SurfaceView {
         isNewScan = scan;
     }
 
-    public void setSpeed(float speed){
+    public void setSpeed(int speed){
         this.speed = speed;
     }
 
@@ -81,11 +87,6 @@ public class Camera2SurfaceView extends SurfaceView {
         return rect;
     }
 
-    public int getAnimationWidth(){
-        int w = rect.right - rect.left;
-        return w * 10;
-    }
-
     public float getScreenWidth() {
         return previewWidth;
     }
@@ -94,7 +95,7 @@ public class Camera2SurfaceView extends SurfaceView {
         return previewHeight;
     }
 
-    public boolean isShowFrontCamera(Context context) {
+    public boolean isRearCameraActive(Context context) {
         return getActiveCamera(context) == 0;
     }
 
@@ -121,6 +122,25 @@ public class Camera2SurfaceView extends SurfaceView {
         SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putInt("width", width);
+        editor.apply();
+    }
+
+    private boolean isAppInitDone(Context context) {
+        SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
+        return sharedPref.getBoolean("isInitDone", false);
+    }
+
+    public void setRearAnimationDuration(Context context, long duration) {
+        SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putLong("rearAnimationDuration", duration);
+        editor.apply();
+    }
+
+    public void setFrontAnimationDuration(Context context, long duration) {
+        SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putLong("frontAnimationDuration", duration);
         editor.apply();
     }
 
@@ -166,6 +186,7 @@ public class Camera2SurfaceView extends SurfaceView {
                                         int videoTexture = videoRenderer.getTexture();
                                         if(isScan){
                                             if(!isf){
+                                                listener.startAnimation();
                                                 startTime = System.currentTimeMillis();
                                                 scanHeight = pixelHeight*speed;
                                             }else{
@@ -182,6 +203,7 @@ public class Camera2SurfaceView extends SurfaceView {
                                             }
                                             else if (scanHeight < 4.0f){
                                                 scanHeight = 5.0f;
+                                                recordAnimationDuration(context);
                                                 Log.d("TAG", "run: " + (System.currentTimeMillis() - startTime));
                                                 Log.d("TAG", "run: scan done");
                                             }
@@ -255,6 +277,19 @@ public class Camera2SurfaceView extends SurfaceView {
                 });
             }
         });
+    }
+
+    private void recordAnimationDuration(Context context) {
+        if (!isAppInitDone(context)) {
+            if (activeCamera == 0) {
+                setRearAnimationDuration(context, System.currentTimeMillis() - startTime);
+                listener.initDone(1);
+            }
+            else {
+                setFrontAnimationDuration(context, System.currentTimeMillis() - startTime);
+                listener.initDone(2);
+            }
+        }
     }
 
     public void destroyAll() {

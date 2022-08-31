@@ -1,5 +1,7 @@
 package com.hyq.hm.test.timewarpscan;
 
 public interface Listener {
-    public void getPixels(int pixel);
+    public void initDone(int stage);
+
+    public void startAnimation();
 }

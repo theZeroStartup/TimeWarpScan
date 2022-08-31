@@ -16,7 +16,7 @@
 
         <View
             android:id="@+id/verticalLineSeparator"
-            android:layout_width="5dp"
+            android:layout_width="6dp"
             android:visibility="gone"
             android:layout_alignStart="@id/camera_view"
             android:background="@color/white"
@@ -29,7 +29,7 @@
             android:visibility="gone"
             android:layout_alignTop="@id/camera_view"
             android:background="@color/white"
-            android:layout_height="5dp"
+            android:layout_height="6dp"
             android:contentDescription="@string/app_name" />
 
 

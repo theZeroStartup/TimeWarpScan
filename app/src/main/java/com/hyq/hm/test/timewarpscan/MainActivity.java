@@ -5,6 +5,7 @@ import static com.hyq.hm.test.timewarpscan.speed.MODE_NORMAL;
 import static com.hyq.hm.test.timewarpscan.speed.MODE_SLOW;
 
 import android.animation.ObjectAnimator;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
@@ -26,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
 
 import com.hyq.hm.test.timewarpscan.databinding.ActivityMainBinding;
+import com.hyq.hm.test.timewarpscan.databinding.DialogInitBinding;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,27 +35,28 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Date;
-import java.util.Objects;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements Listener {
 
     private ActivityMainBinding binding;
 
     private static final int FRONT_CAMERA = 1;
     private static final int BACK_CAMERA = 0;
-    public int ANIMATION_DURATION;
+
+    private ObjectAnimator animation;
+
+    private speed speedMode = MODE_NORMAL;
     private static final int SPEED_SLOW = 4;
     private static final int SPEED_NORMAL = 8;
     private static final int SPEED_FAST = 16;
+
+    private AlertDialog dialog;
+
     private static final String MODE_HORIZONTAL = "horizontal";
     private static final String MODE_VERTICAL = "vertical";
-    private speed speedMode = MODE_NORMAL;
-
-    private static final int STANDARD_WIDTH = 1280;
-    float previewWidth;
-//    private static final int STANDARD_HEIGHT = 2560;
+    private String mode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,63 +64,65 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        init();
+        binding.cameraView.setListener(this);
         clickListeners();
     }
 
-    private void initSizes() {
-        previewWidth = binding.cameraView.getScreenWidth();
+    private void init() {
+        binding.root.getKeepScreenOn();
 
-        Log.d("TAG", "initSizes: " + previewWidth);
+        if (!isAppInitDone()){
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            DialogInitBinding dialogInitBinding = DialogInitBinding.inflate(getLayoutInflater());
+            builder.setView(dialogInitBinding.getRoot());
+            dialog = builder.create();
+            dialog.setCancelable(false);
+            dialog.show();
 
-        if (previewWidth != STANDARD_WIDTH){
-            if (previewWidth > STANDARD_WIDTH){
-                float percentage = (STANDARD_WIDTH / previewWidth) * 100;
-//                percentage = 100 - percentage;
+            new Handler(getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    binding.btnFast.performClick();
 
-                float s1 = (binding.cameraView.getSpeed() * percentage) / 100;
-                float s2 = s1 / 2.85f;
-                Log.d("TAG", "initSizes: " + s1 + " " + s2);
-                binding.cameraView.setSpeed((binding.cameraView.getSpeed() + s1) - s2);
-            }
-            else{
-                float percentage = (previewWidth / STANDARD_WIDTH) * 100;
-//                percentage = 100 - percentage;
-
-                float s1 = (binding.cameraView.getSpeed() * percentage) / 100;
-                float s2 = s1 / 2.85f;
-                Log.d("TAG", "initSizes: " + s1 + " " + s2);
-                binding.cameraView.setSpeed((binding.cameraView.getSpeed() + s1) - s2);
-            }
+                    new Handler(getMainLooper()).postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            binding.btnWarpHorizontal.performClick();
+                        }
+                    }, 500);
+                }
+            }, 1000);
         }
+    }
 
-//        if (Objects.equals(mode, MODE_VERTICAL) &&previewHeight != STANDARD_HEIGHT){
-//            if (previewHeight > STANDARD_HEIGHT){
-//                float percentage = (STANDARD_HEIGHT / previewHeight) * 100;
-//                percentage = 100 - percentage;
-//
-//                float s1 = (binding.cameraView.getSpeed() * percentage) / 100;
-//                float s2 = s1 / 2;
-//
-//                Log.d("TAG", "initSizes: " + s1 + " " + s2);
-//                binding.cameraView.setSpeed(binding.cameraView.getSpeed() + s1 + s2);
-//            }
-//            else{
-//                float percentage = (previewHeight / STANDARD_HEIGHT) * 100;
-//                percentage = 100 - percentage;
-//
-//                float s1 = (binding.cameraView.getSpeed() * percentage) / 100;
-//                float s2 = s1 / 2;
-//                Log.d("TAG", "initSizes: " + s1 + " " + s2);
-//                binding.cameraView.setSpeed(binding.cameraView.getSpeed() + s1 + s2);
-//            }
-//        }
+    private boolean isAppInitDone() {
+        SharedPreferences sharedPref = getSharedPreferences("camera", Context.MODE_PRIVATE);
+        return sharedPref.getBoolean("isInitDone", false);
+    }
+
+    public void setAppInitDone() {
+        SharedPreferences sharedPref = getSharedPreferences("camera", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putBoolean("isInitDone", true);
+        editor.apply();
+    }
+
+    public long getRearAnimationDuration() {
+        SharedPreferences sharedPref = getSharedPreferences("camera", Context.MODE_PRIVATE);
+        return sharedPref.getLong("rearAnimationDuration", 0);
+    }
+
+    public long getFrontAnimationDuration() {
+        SharedPreferences sharedPref = getSharedPreferences("camera", Context.MODE_PRIVATE);
+        return sharedPref.getLong("frontAnimationDuration", 0);
     }
 
     private void clickListeners() {
         binding.btnReset.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startOrStopScan("");
+                startOrStopScan();
                 binding.btnNormal.performClick();
             }
         });
@@ -155,7 +160,6 @@ public class MainActivity extends AppCompatActivity {
         binding.btnWarpHorizontal.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                initSizes();
                 onScan(MODE_HORIZONTAL);
             }
         });
@@ -163,7 +167,6 @@ public class MainActivity extends AppCompatActivity {
         binding.btnWarpVertical.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                initSizes();
                 onScan(MODE_VERTICAL);
             }
         });
@@ -181,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
         binding.btnSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                onCameraSwitch(view);
+                onCameraSwitch();
             }
         });
     }
@@ -194,21 +197,20 @@ public class MainActivity extends AppCompatActivity {
 
     public void onScan(String mode){
         binding.cameraView.setWarpMode(this, mode);
-        startOrStopScan(mode);
+        this.mode = mode;
+        startOrStopScan();
     }
 
-    private void startOrStopScan(String mode) {
+    private void startOrStopScan() {
         binding.cameraView.setScanVideo(!binding.cameraView.isScanVideo());
-        showOrHideActions(mode);
+        showOrHideActions();
     }
 
-    private void showOrHideActions(String mode) {
+    private void showOrHideActions() {
         if(binding.cameraView.isScanVideo()){
             binding.rlActions.setVisibility(View.GONE);
             binding.btnReset.setVisibility(View.VISIBLE);
             binding.rlSpeedControlActions.setVisibility(View.GONE);
-
-            animateLineSeparator(mode);
         }else{
             binding.verticalLineSeparator.setVisibility(View.GONE);
             binding.horizontalLineSeparator.setVisibility(View.GONE);
@@ -217,22 +219,26 @@ public class MainActivity extends AppCompatActivity {
             binding.rlSpeedControlActions.setVisibility(View.VISIBLE);
         }
     }
-    ObjectAnimator animation;
-    private void animateLineSeparator(String mode) {
+
+    private void animateLineSeparator() {
         Log.d("TAG", "animateLineSeparator: " + binding.cameraView.getSpeed());
         if (!mode.isEmpty()) {
-            int animationDuration = binding.cameraView.getAnimationWidth();
+
+            long animationDuration;
+            if (binding.cameraView.isRearCameraActive(this))
+                animationDuration = getRearAnimationDuration();
+            else
+                animationDuration = getFrontAnimationDuration();
+
             if (speedMode == MODE_SLOW){
+                animationDuration *= 4;
+            }
+            else if (speedMode == MODE_NORMAL){
                 animationDuration *= 2;
             }
-            else if (speedMode == MODE_FAST){
-                animationDuration /= 2;
-            }
-
-            ANIMATION_DURATION = animationDuration;
 
             Log.d("TAG", "animateLineSeparator: " + binding.cameraView.getRectangle());
-            Log.d("TAG", "Animation duration: " + ANIMATION_DURATION);
+            Log.d("TAG", "Animation duration: " + animationDuration);
 
             if (mode.equals(MODE_HORIZONTAL)) {
                 binding.verticalLineSeparator.setVisibility(View.VISIBLE);
@@ -245,18 +251,47 @@ public class MainActivity extends AppCompatActivity {
                         binding.cameraView.getRectangle().top, binding.cameraView.getRectangle().bottom);
             }
 
-            animation.setDuration(ANIMATION_DURATION);
+            animation.setDuration(animationDuration);
             animation.setInterpolator(new LinearInterpolator());
             animation.start();
         }
     }
 
-//    2560 x 1280
-//    2592 x 1952 | 2304x1296
-//    2304 x 1728
+    @Override
+    public void initDone(final int stage) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (stage == 1){
+                    if (dialog.isShowing()) dialog.dismiss();
 
-    public void onCameraSwitch(View view){
-        if(binding.cameraView.isShowFrontCamera(this)){
+                    binding.btnReset.performClick();
+                    binding.btnSwitch.performClick();
+                }
+                else if (stage == 2){
+                    if (dialog.isShowing()) dialog.dismiss();
+
+                    setAppInitDone();
+                    binding.btnReset.performClick();
+                    binding.btnSwitch.performClick();
+                }
+            }
+        });
+    }
+
+    @Override
+    public void startAnimation() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (isAppInitDone())
+                    animateLineSeparator();
+            }
+        });
+    }
+
+    public void onCameraSwitch(){
+        if(binding.cameraView.isRearCameraActive(this)){
             switchCamera(this, FRONT_CAMERA);
         }else{
             switchCamera(this, BACK_CAMERA);
