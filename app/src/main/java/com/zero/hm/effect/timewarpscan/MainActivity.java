@@ -268,13 +268,12 @@ public class MainActivity extends AppCompatActivity implements Listener {
     private void showOrHideActions() {
         if(binding.cameraView.isScanVideo()){
             binding.rlActions.setVisibility(View.GONE);
-            binding.btnReset.setVisibility(View.VISIBLE);
-            binding.btnSaveToGallery.setVisibility(View.VISIBLE);
+            binding.rlMoreActions.setVisibility(View.VISIBLE);
             binding.rlSpeedControlActions.setVisibility(View.GONE);
         }else{
             binding.verticalLineSeparator.setVisibility(View.GONE);
             binding.horizontalLineSeparator.setVisibility(View.GONE);
-            binding.btnReset.setVisibility(View.GONE);
+            binding.rlMoreActions.setVisibility(View.GONE);
             binding.rlActions.setVisibility(View.VISIBLE);
             binding.rlSpeedControlActions.setVisibility(View.VISIBLE);
         }

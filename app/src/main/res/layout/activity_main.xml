@@ -101,6 +101,7 @@
             android:id="@+id/rlMoreActions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             android:layout_alignParentBottom="true"
             android:layout_alignParentEnd="true">
 
@@ -111,7 +112,6 @@
                 android:src="@drawable/ic_baseline_refresh_24"
                 android:layout_alignParentEnd="true"
                 android:layout_above="@id/btnSaveToGallery"
-                android:visibility="gone"
                 android:layout_marginHorizontal="5dp"
                 android:text="Switch Camera" />
 
@@ -121,7 +121,6 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_alignParentBottom="true"
-                android:visibility="gone"
                 android:layout_marginStart="5dp"
                 android:layout_marginTop="5dp"
                 android:layout_marginEnd="5dp"
