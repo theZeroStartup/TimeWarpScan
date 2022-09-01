@@ -1,17 +1,20 @@
-package com.hyq.hm.test.timewarpscan;
+package com.zero.hm.effect.timewarpscan;
 
-import static com.hyq.hm.test.timewarpscan.speed.MODE_FAST;
-import static com.hyq.hm.test.timewarpscan.speed.MODE_NORMAL;
-import static com.hyq.hm.test.timewarpscan.speed.MODE_SLOW;
+import static com.zero.hm.effect.timewarpscan.speed.MODE_FAST;
+import static com.zero.hm.effect.timewarpscan.speed.MODE_NORMAL;
+import static com.zero.hm.effect.timewarpscan.speed.MODE_SLOW;
 
 import android.animation.ObjectAnimator;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionManager;
 import android.opengl.GLES20;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -20,14 +23,17 @@ import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.animation.LinearInterpolator;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
 
-import com.hyq.hm.test.timewarpscan.databinding.ActivityMainBinding;
-import com.hyq.hm.test.timewarpscan.databinding.DialogInitBinding;
+import com.zero.hm.effect.timewarpscan.databinding.ActivityMainBinding;
+import com.zero.hm.effect.timewarpscan.databinding.DialogInitBinding;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -58,10 +64,14 @@ public class MainActivity extends AppCompatActivity implements Listener {
     private static final String MODE_VERTICAL = "vertical";
     private String mode;
 
+    private static final int REQUEST_CODE = 100;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(binding.getRoot());
 
         init();
@@ -174,10 +184,17 @@ public class MainActivity extends AppCompatActivity implements Listener {
         binding.btnSaveToGallery.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                takeScreenshot(root);
-                ReadPixelsTask task = new ReadPixelsTask(Math.round(binding.cameraView.getScreenWidth()),
-                        Math.round(binding.cameraView.getScreenHeight()), 100);
-                task.execute();
+                if (hasWritePermissions()) {
+                    hideAllActions();
+                    new Handler(getMainLooper()).postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            startProjection();
+                        }
+                    }, 1000);
+                }
+                else
+                    requestExternalStoragePermission();
             }
         });
 
@@ -187,7 +204,49 @@ public class MainActivity extends AppCompatActivity implements Listener {
                 onCameraSwitch();
             }
         });
+
+        binding.cameraView.setOnTouchListener(new OnSwipeTouchListener(this){
+            @Override
+            public void onSwipeRight() {
+                binding.btnWarpHorizontal.performClick();
+            }
+
+            @Override
+            public void onSwipeBottom() {
+                binding.btnWarpVertical.performClick();
+            }
+        });
     }
+
+    private void hideAllActions() {
+        binding.rlActions.setVisibility(View.GONE);
+        binding.rlSpeedControlActions.setVisibility(View.GONE);
+        binding.rlMoreActions.setVisibility(View.GONE);
+    }
+
+    private void showAllActions() {
+        binding.rlMoreActions.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE && resultCode == RESULT_OK) {
+            startService(ScreenCaptureService.getStartIntent(this, resultCode, data, this));
+        }
+    }
+
+    /****************************************** UI Widget Callbacks *******************************/
+    private void startProjection() {
+        MediaProjectionManager mProjectionManager =
+                (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        startActivityForResult(mProjectionManager.createScreenCaptureIntent(), REQUEST_CODE);
+    }
+
+    private void stopProjection() {
+        startService(ScreenCaptureService.getStopIntent(this));
+    }
+
 
     private void setAllInactive() {
         binding.btnFast.setTextColor(Color.BLACK);
@@ -210,6 +269,7 @@ public class MainActivity extends AppCompatActivity implements Listener {
         if(binding.cameraView.isScanVideo()){
             binding.rlActions.setVisibility(View.GONE);
             binding.btnReset.setVisibility(View.VISIBLE);
+            binding.btnSaveToGallery.setVisibility(View.VISIBLE);
             binding.rlSpeedControlActions.setVisibility(View.GONE);
         }else{
             binding.verticalLineSeparator.setVisibility(View.GONE);
@@ -221,9 +281,7 @@ public class MainActivity extends AppCompatActivity implements Listener {
     }
 
     private void animateLineSeparator() {
-        Log.d("TAG", "animateLineSeparator: " + binding.cameraView.getSpeed());
         if (!mode.isEmpty()) {
-
             long animationDuration;
             if (binding.cameraView.isRearCameraActive(this))
                 animationDuration = getRearAnimationDuration();
@@ -236,9 +294,6 @@ public class MainActivity extends AppCompatActivity implements Listener {
             else if (speedMode == MODE_NORMAL){
                 animationDuration *= (SPEED_FAST / SPEED_NORMAL);
             }
-
-            Log.d("TAG", "animateLineSeparator: " + binding.cameraView.getRectangle());
-            Log.d("TAG", "Animation duration: " + animationDuration);
 
             if (mode.equals(MODE_HORIZONTAL)) {
                 binding.verticalLineSeparator.setVisibility(View.VISIBLE);
@@ -290,6 +345,18 @@ public class MainActivity extends AppCompatActivity implements Listener {
         });
     }
 
+    @Override
+    public void imageSavedSuccessfully(final String filePath) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                stopProjection();
+                showAllActions();
+                Toast.makeText(MainActivity.this, "File saved successfully in " + filePath, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
     public void onCameraSwitch(){
         if(binding.cameraView.isRearCameraActive(this)){
             switchCamera(this, FRONT_CAMERA);
@@ -319,212 +386,6 @@ public class MainActivity extends AppCompatActivity implements Listener {
         );
     }
 
-    private void takeScreenshot(View view) {
-        // create bitmap screen capture
-        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(),
-                view.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        view.draw(canvas);
-
-        String fileName = saveToInternalStorage(bitmap);
-
-        if (fileName != null){
-            Toast.makeText(getApplicationContext(),"Saved in " + fileName, Toast.LENGTH_LONG).show();
-//            openScreenshot(new File(fileName));
-        }
-    }
-
-    private String saveToInternalStorage(Bitmap bitmapImage) {
-        File directory = getDirectory();
-
-        if (directory != null) {
-            File myPath = getFilePath(directory);
-
-            FileOutputStream fos = null;
-            try {
-                fos = new FileOutputStream(myPath);
-                // Use the compress method on the BitMap object to write image to the OutputStream
-                bitmapImage.compress(Bitmap.CompressFormat.PNG, 100, fos);
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            return myPath.getAbsolutePath();
-        }
-
-        return null;
-    }
-
-    private File getFilePath(File directory) {
-        return new File(directory, new Date().getTime() + ".jpg");
-    }
-
-    private File getDirectory() {
-        File directory;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            directory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString() + "/Tws");
-        } else {
-            directory = new File(Environment.getExternalStorageDirectory().toString() + "/Tws");
-        }
-
-        if (!directory.exists()) {
-            // Make it, if it doesn't exit
-            boolean success = directory.mkdirs();
-            if (!success) {
-                directory = null;
-            }
-        }
-
-        return directory;
-    }
-
-    private class ReadPixelsTask extends AsyncTask<Void, Integer, Long> {
-        private int mWidth;
-        private int mHeight;
-        private int mIterations;
-
-        /**
-         * Prepare for the glReadPixels test.
-         */
-        public ReadPixelsTask(
-                int width, int height, int iterations) {
-            mWidth = width;
-            mHeight = height;
-            mIterations = iterations;
-        }
-
-        @Override
-        protected Long doInBackground(Void... params) {
-            long result;
-            EglCore eglCore = null;
-            OffscreenSurface surface = null;
-
-            try {
-                eglCore = new EglCore(null, 0);
-                surface = new OffscreenSurface(eglCore, mWidth, mHeight);
-                Log.d("TAG", "Buffer size " + mWidth + "x" + mHeight);
-                result = runGfxTest(surface);
-            } finally {
-                if (surface != null) {
-                    surface.release();
-                }
-                if (eglCore != null) {
-                    eglCore.release();
-                }
-            }
-            return result < 0 ? result : result / mIterations;
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... progress) {
-
-        }
-
-        @Override
-        protected void onPostExecute(Long result) {
-            Log.d("TAG", "onPostExecute result=" + result);
-
-            Resources res = getResources();
-            if (result < 0) {
-//                setMessage(mResultTextId, res.getString(R.string.did_not_complete));
-            } else {
-//                setMessage(mResultTextId, (result / 1000) +
-//                        res.getString(R.string.usec_per_iteration));
-            }
-        }
-
-        /**
-         * Does a simple bit of rendering and then reads the pixels back.
-         *
-         * @return total time spent on glReadPixels()
-         */
-        private long runGfxTest(OffscreenSurface eglSurface) {
-            long totalTime = 0;
-
-            eglSurface.makeCurrent();
-
-            ByteBuffer pixelBuf = ByteBuffer.allocateDirect(mWidth * mHeight * 4);
-            pixelBuf.order(ByteOrder.LITTLE_ENDIAN);
-
-            Log.d("TAG", "Running...");
-            float colorMult = 1.0f / mIterations;
-            for (int i = 0; i < mIterations; i++) {
-                if ((i % (mIterations / 8)) == 0) {
-                    publishProgress(i);
-                }
-
-                // Clear the screen to a solid color, then add a rectangle.  Change the color
-                // each time.
-                float r = i * colorMult;
-                float g = 1.0f - r;
-                float b = (r + g) / 2.0f;
-                GLES20.glClearColor(r, g, b, 1.0f);
-                GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-
-                GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
-                GLES20.glScissor(mWidth / 4, mHeight / 4, mWidth / 2, mHeight / 2);
-                GLES20.glClearColor(b, g, r, 1.0f);
-                GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-                GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
-
-                // Try to ensure that rendering has finished.
-                GLES20.glFinish();
-                GLES20.glReadPixels(0, 0, 1, 1,
-                        GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, pixelBuf);
-
-                // Time individual extraction.  Ideally we'd be timing a bunch of these calls
-                // and measuring the aggregate time, but we want the isolated time, and if we
-                // just read the same buffer repeatedly we might get some sort of cache effect.
-                long startWhen = System.nanoTime();
-                GLES20.glReadPixels(0, 0, mWidth, mHeight,
-                        GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, pixelBuf);
-                totalTime += System.nanoTime() - startWhen;
-            }
-            Log.d("TAG", "done");
-
-            // save the last one off into a file
-            long startWhen = System.nanoTime();
-            try {
-                File directory = getDirectory();
-                File file = getFilePath(directory);
-                Log.d("TAG", "runGfxTest: " + file);
-                eglSurface.saveFrame(file);
-            } catch (IOException ioe) {
-                throw new RuntimeException(ioe);
-            }
-            Log.d("TAG", "Saved frame in " + ((System.nanoTime() - startWhen) / 1000000) + "ms");
-
-            return totalTime;
-        }
-
-        private File getFilePath(File directory) {
-            return new File(directory, new Date().getTime() + ".jpg");
-        }
-
-        private File getDirectory() {
-            File directory;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                directory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString() + "/Tws");
-            } else {
-                directory = new File(Environment.getExternalStorageDirectory().toString() + "/Tws");
-            }
-
-            if (!directory.exists()) {
-                // Make it, if it doesn't exit
-                boolean success = directory.mkdirs();
-                if (!success) {
-                    directory = null;
-                }
-            }
-
-            return directory;
-        }
-    }
 } enum speed {
     MODE_NORMAL,
     MODE_SLOW,

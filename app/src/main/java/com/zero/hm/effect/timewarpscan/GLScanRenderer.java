@@ -1,9 +1,8 @@
-package com.hyq.hm.test.timewarpscan;
+package com.zero.hm.effect.timewarpscan;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.opengl.GLES20;
-import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

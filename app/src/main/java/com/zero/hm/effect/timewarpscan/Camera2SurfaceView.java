@@ -1,4 +1,4 @@
-package com.hyq.hm.test.timewarpscan;
+package com.zero.hm.effect.timewarpscan;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -27,7 +27,6 @@ import androidx.annotation.NonNull;
 import androidx.core.content.PermissionChecker;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;

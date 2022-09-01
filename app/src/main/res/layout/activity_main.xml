@@ -4,12 +4,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:id="@+id/root"
-    tools:context="com.hyq.hm.test.timewarpscan.MainActivity">
+    tools:context="com.zero.hm.effect.timewarpscan.MainActivity">
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-        <com.hyq.hm.test.timewarpscan.Camera2SurfaceView
+        <com.zero.hm.effect.timewarpscan.Camera2SurfaceView
             android:id="@+id/camera_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
@@ -121,6 +121,7 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_alignParentBottom="true"
+                android:visibility="gone"
                 android:layout_marginStart="5dp"
                 android:layout_marginTop="5dp"
                 android:layout_marginEnd="5dp"

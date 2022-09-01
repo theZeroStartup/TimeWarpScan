@@ -1,4 +1,4 @@
-package com.hyq.hm.test.timewarpscan;
+package com.zero.hm.effect.timewarpscan;
 
 import android.graphics.Bitmap;
 import android.opengl.EGL14;

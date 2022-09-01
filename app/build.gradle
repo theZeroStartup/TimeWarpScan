@@ -5,8 +5,8 @@ android {
     buildToolsVersion "29.0.3"
 
     defaultConfig {
-        applicationId "com.hyq.hm.test.timewarpscan"
-        minSdkVersion 21
+        applicationId "com.zero.hm.effect.timewarpscan"
+        minSdkVersion 23
         targetSdkVersion 32
         versionCode 1
         versionName "0.0.6"

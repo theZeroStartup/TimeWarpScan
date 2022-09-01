@@ -1,4 +1,4 @@
-package com.hyq.hm.test.timewarpscan;
+package com.zero.hm.effect.timewarpscan;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -84,7 +84,6 @@ public class GuideActivity extends AppCompatActivity {
     }
     private void init(){
         TextView textView = findViewById(R.id.text_view);
-        textView.setText("Welcome");
         textView.postDelayed(new Runnable() {
             @Override
             public void run() {
