@@ -61,6 +61,7 @@ public class ScreenCaptureService extends Service {
 
     boolean imageSaved = false;
     private static Listener listener;
+    private boolean continueImageSave = false;
 
     public static Intent getStartIntent(Context context, int resultCode, Intent data, Listener l) {
         listener = l;
@@ -108,13 +109,17 @@ public class ScreenCaptureService extends Service {
                     bitmap = Bitmap.createBitmap(mWidth + rowPadding / pixelStride, mHeight, Bitmap.Config.ARGB_8888);
                     bitmap.copyPixelsFromBuffer(buffer);
 
-                    // write bitmap to a file
-//                    fos = new FileOutputStream(mStoreDir + "/myscreen_" + IMAGES_PRODUCED + ".png");
-//                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
                     String fileName = "";
-                    if (IMAGES_PRODUCED == 5) {
+                    if (IMAGES_PRODUCED == 5 || continueImageSave) {
                         fileName = saveToInternalStorage(bitmap);
-                        listener.imageSavedSuccessfully(fileName);
+
+                        Log.d("TAG", "onImageAvailable: " + fileName);
+                        if (fileName != null && !fileName.isEmpty()) {
+                            listener.imageSavedSuccessfully(fileName);
+                            continueImageSave = false;
+                        }
+                        else
+                            continueImageSave = true;
                     }
 
                     IMAGES_PRODUCED++;
@@ -142,6 +147,8 @@ public class ScreenCaptureService extends Service {
 
     private String saveToInternalStorage(Bitmap bitmapImage) {
         File directory = getDirectory();
+
+        Log.d("TAG", "saveToInternalStorage: " + directory);
 
         if (directory != null) {
             File myPath = getFilePath(directory);
@@ -173,14 +180,17 @@ public class ScreenCaptureService extends Service {
     private File getDirectory() {
         File directory;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            directory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).toString() + "/Tws");
+            directory = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString() + "/TimeWarp");
         } else {
-            directory = new File(Environment.getExternalStorageDirectory().toString() + "/Tws");
+            directory = new File(Environment.getExternalStorageDirectory().toString() + "/TimeWarp");
         }
+
+        Log.d("TAG", "getDirectory: " + directory);
 
         if (!directory.exists()) {
             // Make it, if it doesn't exit
             boolean success = directory.mkdirs();
+            Log.d("TAG", "getDirectory: " + directory.canWrite());
             if (!success) {
                 directory = null;
             }

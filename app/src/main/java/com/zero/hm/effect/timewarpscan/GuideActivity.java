@@ -20,7 +20,7 @@ import java.util.ArrayList;
 
 public class GuideActivity extends AppCompatActivity {
     private String[] denied;
-    private String[] permissions = {Manifest.permission.CAMERA};
+    private String[] permissions = {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE};
 
     @SuppressLint("WrongConstant")
     @Override

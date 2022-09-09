@@ -37,6 +37,7 @@ public class Camera2SurfaceView extends SurfaceView {
     private GLVideoRenderer videoRenderer = new GLVideoRenderer();
     private GLRenderer mRenderer = new GLRenderer();
     private GLScanRenderer scanRenderer = new GLScanRenderer();
+    private GLLineRenderer lineRenderer = new GLLineRenderer();
 
     private String mCameraId;
     private CameraManager mCameraManager;
@@ -78,20 +79,8 @@ public class Camera2SurfaceView extends SurfaceView {
         this.speed = speed;
     }
 
-    public float getSpeed() {
-        return speed;
-    }
-
     public Rect getRectangle() {
         return rect;
-    }
-
-    public float getScreenWidth() {
-        return previewWidth;
-    }
-
-    public float getScreenHeight() {
-        return previewHeight;
     }
 
     public boolean isRearCameraActive(Context context) {
@@ -112,18 +101,6 @@ public class Camera2SurfaceView extends SurfaceView {
         isScan = false;
     }
 
-    public int getScreenWidth(Context context) {
-        SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
-        return sharedPref.getInt("width", 0);
-    }
-
-    public void setScreenWidth(Context context, int width) {
-        SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putInt("width", width);
-        editor.apply();
-    }
-
     private boolean isAppInitDone(Context context) {
         SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
         return sharedPref.getBoolean("isInitDone", false);
@@ -132,14 +109,14 @@ public class Camera2SurfaceView extends SurfaceView {
     public void setRearAnimationDuration(Context context, long duration) {
         SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putLong("rearAnimationDuration", duration);
+        editor.putLong("rearAnimationDuration", duration * 8);
         editor.apply();
     }
 
     public void setFrontAnimationDuration(Context context, long duration) {
         SharedPreferences sharedPref = context.getSharedPreferences("camera", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putLong("frontAnimationDuration", duration);
+        editor.putLong("frontAnimationDuration", duration * 8);
         editor.apply();
     }
 
@@ -172,6 +149,7 @@ public class Camera2SurfaceView extends SurfaceView {
                         mRenderer.initShader();
                         videoRenderer.initShader();
                         scanRenderer.initShader();
+                        lineRenderer.initShader();
                         videoRenderer.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
                             @Override
                             public void onFrameAvailable(SurfaceTexture surfaceTexture) {
@@ -198,6 +176,11 @@ public class Camera2SurfaceView extends SurfaceView {
                                                     scanHeight = 3.0f;
                                                     fh = 1.0f;
                                                 }
+//                                                lineRenderer.setVertices(
+//                                                        -10f, 10f, 0f,
+//                                                        10f, 10f, 0f);
+//                                                lineRenderer.setColor(.8f, .8f, 0f, 1.0f);
+//                                                lineRenderer.drawFrame();
                                                 scanRenderer.drawFrame(videoRenderer.getTexture(),fh, context, isNewScan);
                                             }
                                             else if (scanHeight < 4.0f){
@@ -237,7 +220,6 @@ public class Camera2SurfaceView extends SurfaceView {
                         Log.d("TAG", "run: " + mPreviewSize);
                         previewWidth = mPreviewSize.getHeight();
                         previewHeight = mPreviewSize.getWidth();
-                        if (getScreenWidth(context) == 0) setScreenWidth(context, previewWidth);
                         pixelHeight = 1.0f/previewHeight;
                         int left, top, viewWidth, viewHeight;
                         float sh = screenWidth * 1.0f / screenHeight;
@@ -258,6 +240,7 @@ public class Camera2SurfaceView extends SurfaceView {
                         rect.right = left + viewWidth;
                         rect.bottom = top + viewHeight;
                         videoRenderer.setSize(mPreviewSize.getWidth(),mPreviewSize.getHeight());
+                        lineRenderer.setSize(mPreviewSize.getWidth(),mPreviewSize.getHeight());
                         scanRenderer.setSize(mPreviewSize.getWidth(),mPreviewSize.getHeight());
                         if(sw == -1){
                             openCamera2();

@@ -28,6 +28,7 @@ import android.view.WindowManager;
 import android.view.animation.LinearInterpolator;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.res.ResourcesCompat;
@@ -41,10 +42,12 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Date;
+import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
+import pub.devrel.easypermissions.PermissionRequest;
 
-public class MainActivity extends AppCompatActivity implements Listener {
+public class MainActivity extends AppCompatActivity implements Listener, EasyPermissions.PermissionCallbacks {
 
     private ActivityMainBinding binding;
 
@@ -70,8 +73,6 @@ public class MainActivity extends AppCompatActivity implements Listener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(binding.getRoot());
 
         init();
@@ -93,14 +94,8 @@ public class MainActivity extends AppCompatActivity implements Listener {
             new Handler(getMainLooper()).postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    binding.btnFast.performClick();
-
-                    new Handler(getMainLooper()).postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            binding.btnWarpHorizontal.performClick();
-                        }
-                    }, 500);
+                    binding.cameraView.setSpeed(SPEED_FAST * 8);
+                    binding.btnWarpHorizontal.performClick();
                 }
             }, 1000);
         }
@@ -184,6 +179,7 @@ public class MainActivity extends AppCompatActivity implements Listener {
         binding.btnSaveToGallery.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Log.d("TAG", "onClick: " + hasWritePermissions());
                 if (hasWritePermissions()) {
                     hideAllActions();
                     new Handler(getMainLooper()).postDelayed(new Runnable() {
@@ -193,8 +189,9 @@ public class MainActivity extends AppCompatActivity implements Listener {
                         }
                     }, 1000);
                 }
-                else
+                else {
                     requestExternalStoragePermission();
+                }
             }
         });
 
@@ -381,9 +378,36 @@ public class MainActivity extends AppCompatActivity implements Listener {
     private void requestExternalStoragePermission() {
         EasyPermissions.requestPermissions(
                 this, "Please grant storage access to save file",
-                121, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                100, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
         );
     }
+
+    @Override
+    public void onPermissionsGranted(int requestCode, @NonNull List<String> perms) {
+
+    }
+
+    @Override
+    public void onPermissionsDenied(int requestCode, @NonNull List<String> perms) {
+
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            // Standard Android full-screen functionality.
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+    }
+
 
 } enum speed {
     MODE_NORMAL,

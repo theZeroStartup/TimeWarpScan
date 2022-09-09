@@ -55,13 +55,13 @@ public class GLVideoRenderer {
                 -1f, 1f, 0f
         };
 
-
         float[] textureVertexData = {
                 1f, 0f,
                 0f, 0f,
                 1f, 1f,
                 0f, 1f
         };
+
         FloatBuffer vertexBuffer = ByteBuffer.allocateDirect(vertexData.length * 4)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer()

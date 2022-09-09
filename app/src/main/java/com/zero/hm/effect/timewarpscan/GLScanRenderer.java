@@ -1,5 +1,7 @@
 package com.zero.hm.effect.timewarpscan;
 
+import static android.opengl.GLES20.GL_COLOR_BUFFER_BIT;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.opengl.GLES20;
@@ -21,9 +23,7 @@ public class GLScanRenderer {
     private int[] textures = new int[2];
     private int[] frameBuffers = new int[2];
 
-
     public void initShader() {
-
         float[] vertexData = {
                 1f, -1f, 0f,
                 -1f, -1f, 0f,
@@ -68,7 +68,6 @@ public class GLScanRenderer {
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
 
         GLES20.glGenFramebuffers(frameBuffers.length, frameBuffers,0);
-
     }
 
     private String getWarpMode(Context context) {
@@ -99,7 +98,7 @@ public class GLScanRenderer {
         textureIndex = (index+1)%2;
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, frameBuffers[textureIndex]);
-        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
+        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
         GLES20.glViewport(0,0,width,height);
         GLES20.glUseProgram(getProgramId(context, isNewScan));
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -125,6 +124,8 @@ public class GLScanRenderer {
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+
+        GLES20.glClear(GL_COLOR_BUFFER_BIT);
     }
 
     private int getProgramId(Context context, boolean isNewScan) {
@@ -154,7 +155,7 @@ public class GLScanRenderer {
                         "void main() {\n" +
                         "   highp float fy = 1.0 - vTexCoord.y;\n" +
                         "   if(fy > scanHeight){" +
-                        "       highp vec4 rgba = texture2D(sTexture , vTexCoord);\n" +
+                        "       highp vec4 rgba = texture2D(sTexture, vTexCoord);\n" +
                         "       gl_FragColor = rgba;\n" +
                         "   }else{" +
                         "       highp vec4 rgba = texture2D(uTexture , vTexCoord);\n" +
