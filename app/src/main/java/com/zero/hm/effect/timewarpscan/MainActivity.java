@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements Listener, EasyPer
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        init();
+//        init();
         binding.cameraView.setListener(this);
         clickListeners();
     }
@@ -335,8 +335,8 @@ public class MainActivity extends AppCompatActivity implements Listener, EasyPer
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (isAppInitDone())
-                    animateLineSeparator();
+//                if (isAppInitDone())
+//                    animateLineSeparator();
             }
         });
     }

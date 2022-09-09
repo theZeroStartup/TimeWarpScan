@@ -25,3 +25,13 @@ Gapp/src/main/java/com/zero/hm/effect/timewarpscan/OffscreenSurface.java,1\2\12
 Kapp/src/main/java/com/zero/hm/effect/timewarpscan/OnSwipeTouchListener.java,e\c\eca3bebb48f8173d23e04d544c0663b36f85983e
 q
 Aapp/src/main/java/com/zero/hm/effect/timewarpscan/GLRenderer.java,5\b\5b44ffb77c54832f3c83e32c9f28c54ea8bc2272
+P
+ app/src/main/AndroidManifest.xml,8\c\8c55c3ccc257e5907959013f99656e4c8ec3903e
+u
+Eapp/src/main/java/com/zero/hm/effect/timewarpscan/GLScanRenderer.java,c\0\c0f5a1f007d9008dd72068460580e2f69057fbbc
+t
+Dapp/src/main/java/com/zero/hm/effect/timewarpscan/GuideActivity.java,9\e\9ee3b764ebc40cbed66977f87443c3ec01cc7d70
+k
+;app/src/main/java/com/zero/hm/effect/timewarpscan/Line.java,2\c\2c59e65b3427b660f59019bc5fe77a7423fbbbf9
+{
+Kapp/src/main/java/com/zero/hm/effect/timewarpscan/ScreenCaptureService.java,b\9\b9074ee85fdc83d316bb4f75bf6f266fb20c4f03
